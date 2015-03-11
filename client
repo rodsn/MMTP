@@ -260,7 +260,9 @@ function main()
 
 		if ev == "mouse_scroll" then
 			if dif < 1 and btn == -1 then
-				dif = updateMail(1)
+				dif = updateMail(0)
+			elseif dif > mail.msg - 18 and btn == 1 then
+				dif = updateMail(dif)
 			else
 				dif = updateMail(dif+btn)
 			end
