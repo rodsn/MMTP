@@ -287,11 +287,7 @@ function main()
 
 			for v = 1, mail.msg do
 				n = tostring(v)
-				if y == 3 then
-					gui.check("mail_"..tostring(v), btn, x, y, n)
-				else
-					gui.check("mail_"..tostring(v-1), btn, x, y, n)
-				end
+				gui.check("mail_"..n, btn, x, y, n)
 			end
 		end
 	end
