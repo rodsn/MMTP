@@ -1,0 +1,209 @@
+Durl = "http://rodsn.site90.net/prog.php?"
+DMMTP = "http://rodsn.site90.net/MMTP.php?"
+
+--ENCRYPTION FUNCTIONS
+function encrypt( string, key )
+	v1 = enc(string, key)
+	v1 = string.reverse(v1)
+	v2 = enc(v1, key)
+	return v2
+end
+
+function decrypt( string, key )
+	v1 = dec(string, key)
+	v1 = string.reverse(v1)
+	v2 = dec(v1, key)
+	return v2
+end
+
+function enc( string, key )
+	str = ""
+	if #string > #key then
+		nkey = ""
+		while #string > #nkey do
+			nkey = nkey..key
+		end
+		key = nkey
+	end
+	for s = 1, #string do
+		ch = string.sub(string, s, s)
+		k = string.sub(key, s, s)
+		bChar = string.byte(ch)
+		bKey = string.byte(k)
+		if s == 1 then
+			secKey1 = 1
+			secKey2 = 42
+		elseif s > 1 and s < #string then
+			secKey1 = string.byte(string.sub(str, s-1, s-1))
+			--secKey2 = string.byte(string.sub(string, s+1, s+1))
+		else
+			secKey1 = 42
+			secKey2 = 1
+		end
+		math.randomseed(secKey1 * #string + 42 * bKey / #key)
+		bKey = math.random(1, 94)
+		bCharU = bChar + bKey
+		if bCharU > 126 then
+			bCharU = (bCharU - 126) + 31
+		end
+		eChar = string.char(bCharU)
+		if bChar == 10 or bChar == 9 or bChar == 8 then
+			eChar = "\n"
+		end
+		str = str..eChar
+	end
+	return str
+end
+
+function dec( string, key )
+	str = ""
+	if #string > #key then
+		nkey = ""
+		while #string > #nkey do
+			nkey = nkey..key
+		end
+		key = nkey
+	end
+	--string = string.reverse(string)
+	for s = 1, #string do
+		ch = string.sub(string, s, s)
+		k = string.sub(key, s, s)
+		bChar = string.byte(ch)
+		bKey = string.byte(k)
+		if s == 1 then
+			secKey1 = 1
+			secKey2 = 42
+		elseif s > 1 and s < #string then
+			secKey1 = string.byte(string.sub(string, s-1, s-1))
+			--secKey2 = string.byte(string.sub(str, s+1, s+1))
+		else
+			secKey1 = 42
+			secKey2 = 1
+		end
+		math.randomseed(secKey1 * #string + 42 * bKey / #key)
+		bKey = math.random(1, 94)
+		bCharU = bChar - bKey
+		if bCharU < 32 then
+			bCharU = 126 - (31 - bCharU)
+		end	
+		eChar = string.char(bCharU)
+		if bChar == 10 or bChar == 9 or bChar == 8 then
+			eChar = "\n"
+		end
+		str = str..eChar
+	end
+	return str
+end
+--END OF ENCRYPTION FUNCTIONS
+
+function login( username, password )
+	url = Durl.."mode=login&user="..textutils.urlEncode(username).."&pass="..textutils.urlEncode(encrypt(password, "database"))
+
+	response = http.get(url)
+
+	data = textutils.unserialize(response.readAll())
+
+	if data then
+		if data == 1 then
+			log_user = username
+			log_pass = password
+			logged = true
+		end
+		return data
+	else
+		return "Server down"
+	end
+end
+
+function create( username, password )
+	url = Durl.."mode=create&user="..textutils.urlEncode(username).."&pass="..textutils.urlEncode(encrypt(password, "database"))
+
+	response = http.get(url)
+
+	data = textutils.unserialize(response.readAll())
+
+	if data then
+		return data
+	else
+		return 3
+	end
+end
+
+function delete( username, password )
+	url = Durl.."mode=delete$user="..textutils.urlEncode(username).."&pass="..textutils.urlEncode(encrypt(password, "database"))
+end
+
+function check()
+	if logged then
+
+
+		MMTP = DMMTP.."mode=check&user="..textutils.urlEncode(log_user).."&pass="..textutils.urlEncode(encrypt(log_pass, "database"))
+		response = http.get(MMTP)
+
+		content = response.readAll()
+
+		data = textutils.unserialize(content)
+
+		if data then
+			return data
+		else
+			return 3
+		end
+	else
+		return 0
+	end
+end
+
+function seen( content, id )
+	if logged then
+		MMTP = DMMTP.."mode=seen&user="..textutils.urlEncode(log_user).."&pass="..textutils.urlEncode(encrypt(log_pass, "database")).."&data="..textutils.urlEncode(content).."&date="..textutils.urlEncode(id)
+		
+		response = http.get(MMTP)
+
+		content = response.readAll()
+
+		data = textutils.unserialize(content)
+
+		if data then
+			return data
+		else
+			return 3
+		end
+	else
+		return 0
+	end
+end
+
+function get()
+	if logged then
+		MMTP = DMMTP.."mode=get&user="..textutils.urlEncode(log_user).."&pass="..textutils.urlEncode(encrypt(log_pass, "database"))
+		response = http.get(MMTP)
+
+		content = response.readAll()
+
+		data = textutils.unserialize(content)
+
+		if data then
+			return data
+		else
+			return 3
+		end
+	else
+		return 0
+	end
+end
+
+function send( to, title, msg )
+	if logged then
+		MMTP = DMMTP.."mode=send&user="..textutils.urlEncode(log_user).."&pass="..textutils.urlEncode(encrypt(log_pass, "database")).."&send="..textutils.urlEncode(to).."&data="..textutils.urlEncode(msg).."&head="..textutils.urlEncode(title)
+		response = http.get(MMTP)
+		data = textutils.unserialize(response.readAll())
+		if data then
+			return data
+		else
+			return 3
+		end
+	else
+		return 0
+	end
+end

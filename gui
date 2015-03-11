@@ -1,0 +1,332 @@
+local tButtons = {}
+local tBoxes = {}
+local img = {}
+local tLabels = {}
+
+function exists( id )
+	for k, v in pairs(tButtons) do
+		if v.id == id then
+			return true, "button"
+		end
+	end
+end
+
+function flush()
+	tButtons = {}
+	tBoxes = {}
+	img = {}
+	tLabels = {}
+end
+
+function fill( color )
+	term.setBackgroundColor(color)
+	term.clear()
+end
+
+function newLabel( id, text, txtColor, color, x, y, w, h )
+	l = {id=id, text=text, txtColor=txtColor, color=color, x=x, y=y, w=w, h=h}
+	tLabels[#tLabels + 1] = l
+end
+
+function newButton( id, text, txtColor, color, btn, func, x, y, w, h )
+	b = {id=id, text=text, btn=btn, txtColor=txtColor, color=color, func=func, x=x, y=y, w=w, h=h}
+	tButtons[#tButtons + 1] = b
+end
+
+function newTextBox( id, def, defColor, txtColor, color, hide, btn, x, y, w, skip, liner)
+	t = {id=id, def=def, defColor=defColor, txtColor=txtColor, color=color, hide=hide, btn=btn, x=x, y=y, w=w-1, h=0, skip=skip, liner=liner}
+	tBoxes[#tBoxes + 1] = t
+end
+
+function removeButton( id )
+	for k, v in pairs(tButtons) do
+		term.setCursorPos(10,1)
+		if v.id == id then
+			table.remove(tButtons, k)
+			return
+		end
+	end
+end
+
+function removeTextBox( id )
+	for k, v in pairs(tBoxes) do
+		term.setCursorPos(10,1)
+		if v.id == id then
+			table.remove(tBoxes, k)
+			return
+		end
+	end
+end
+
+function setSkip(id, boolean)
+	for k, v in pairs(tBoxes) do
+		if v.id == id then
+			v.skip = boolean
+		end
+	end
+end
+
+function check(id, btn, x, y, ...)
+	for k, v in pairs(tButtons) do
+		if id == v.id and btn == v.btn and x >= v.x and x <= v.x + v.w and y >= v.y and y <= v.y + v.h then
+			if v.func == nil then
+				r = nil
+			else
+				r = v.func( ... )
+			end
+			
+			return true, r
+		end
+	end
+
+	for k, v in pairs(tBoxes) do
+		--l = k
+		if id == v.id and btn == v.btn and x >= v.x and x <= v.x + v.w and y >= v.y and y <= v.y + v.h then
+			term.setCursorPos(v.x, v.y)
+			inp = Lread(v.data, v.hide, v.txtColor, v.color, v.w+1, _, v.x + v.w, v.liner)
+			v.data = string.lower(inp)
+			if v.skip then
+				n = tBoxes[k+1]
+			else
+				n = nil
+			end
+			--l = l + 1
+			
+				if n ~= nil then
+					check(n.id, n.btn, n.x, n.y, n.skip)
+				end
+			return
+			--
+			--return inp
+		end
+	end
+
+	return false
+end
+
+function get( id )
+	for k, v in pairs(tBoxes) do
+		if v.id == id then
+			return v.data
+		end
+	end
+end
+
+function draw()
+	for k, v in pairs(tButtons) do
+		term.setTextColor(v.txtColor)
+		paintutils.drawFilledBox(v.x, v.y, v.x + v.w, v.y + v.h, v.color)
+		
+		
+		xt = v.w / 2 - (#v.text / 2) + 1
+		yt = v.h / 2
+		
+		xt = math.floor(xt)
+		yt = math.floor(yt)
+		term.setCursorPos(v.x + xt, v.y + yt)
+
+		print(string.sub(v.text, 1, v.w))
+	end
+
+	for k, v in pairs(tBoxes) do
+		term.setTextColor(v.defColor)
+		paintutils.drawFilledBox(v.x, v.y, v.x + v.w, v.y + v.h, v.color)
+	
+
+		xt = v.w / 2 - (#v.def / 2) + 1
+		yt = v.h / 2
+		
+		xt = math.floor(xt)
+		yt = math.floor(yt)
+		term.setCursorPos(v.x + xt, v.y + yt)
+
+		if v.data then
+			term.setCursorPos(v.x, v.y)
+			term.setTextColor(v.txtColor)
+			if not v.hide then
+				print(string.sub(v.data, 1, v.w+1))
+			else
+				print(string.rep(v.hide, #v.data))
+			end
+		else
+			print(string.sub(v.def, 1, v.w+1))
+		end
+	end
+
+	for k, v in pairs(tLabels) do
+		term.setTextColor(v.txtColor)
+		paintutils.drawFilledBox(v.x, v.y, v.x + v.w, v.y + v.h, v.color)
+
+		xt = v.w / 2 - (#v.text / 2) + 1
+		yt = v.h / 2
+		
+		xt = math.floor(xt)
+		yt = math.floor(yt)
+		term.setCursorPos(v.x, v.y)
+		print(v.text)
+	end
+end
+
+function Lread(prev, _sReplaceChar, tcolor, bcolor, limit, _tHistory, endL, liner)
+    term.setCursorBlink( true )
+    term.setBackgroundColor(bcolor)
+    term.setTextColor(tcolor)
+    x, y = term.getCursorPos()
+    if liner then
+        Dlimit = 999
+        limit = 999
+    else
+        Dlimit = limit
+    end
+    print(string.rep(" ", Dlimit))
+    term.setCursorPos(x, y)
+
+    local sLine = prev or ""
+    local nHistoryPos
+    local nPos = 0
+    if prev then
+        nPos = #prev
+    end
+    if _sReplaceChar then
+        _sReplaceChar = string.sub( _sReplaceChar, 1, 1 )
+    end
+    
+    local w = endL
+    local sx = term.getCursorPos()
+    
+    local function redraw( _sCustomReplaceChar )
+        term.setCursorBlink(true)
+        local nScroll = 0
+        if sx + nPos >= w then
+            nScroll = (sx + nPos) - w
+        end
+
+        local cx,cy = term.getCursorPos()
+        term.setCursorPos( sx, cy )
+        local sReplace = _sCustomReplaceChar or _sReplaceChar
+        if sReplace then
+            term.write( string.rep( sReplace, math.max( string.len(sLine) - nScroll, 0 ) ) )
+        else
+            term.write( string.sub( sLine, nScroll + 1 ) )
+        end
+        term.setCursorPos( sx + nPos - nScroll, cy )
+        
+        xs, ys = term.getCursorPos()
+        --print(xs - sx + nPos - nScroll)
+        if #sLine == limit and (nPos) >= limit  then
+            term.setCursorBlink(false)
+        end
+    end
+    redraw()
+    while true do
+        local sEvent, param = os.pullEvent()
+        if sEvent == "char" and #sLine < limit then
+            -- Typed key
+            sLine = string.sub( sLine, 1, nPos ) .. param .. string.sub( sLine, nPos + 1 )
+            nPos = nPos + 1
+            redraw()
+
+        elseif sEvent == "paste" then
+            -- Pasted text
+            sLine = string.sub( sLine, 1, nPos ) .. param .. string.sub( sLine, nPos + 1 )
+            nPos = nPos + string.len( param )
+            redraw()
+
+        elseif sEvent == "key" then
+            if param == keys.enter then
+                -- Enter
+                break
+                
+            elseif param == keys.left then
+                -- Left
+                term.setCursorBlink(true)
+
+                if nPos > 0 then
+                    nPos = nPos - 1
+                    redraw()
+                end
+                
+            elseif param == keys.right then
+                -- Right
+
+                if nPos < string.len(sLine) then
+                    redraw(" ")
+                    nPos = nPos + 1
+                    redraw()
+                end
+            
+            elseif param == keys.up or param == keys.down then
+                -- Up or down
+                if _tHistory then
+                    redraw(" ")
+                    if param == keys.up then
+                        -- Up
+                        if nHistoryPos == nil then
+                            if #_tHistory > 0 then
+                                nHistoryPos = #_tHistory
+                            end
+                        elseif nHistoryPos > 1 then
+                            nHistoryPos = nHistoryPos - 1
+                        end
+                    else
+                        -- Down
+                        if nHistoryPos == #_tHistory then
+                            nHistoryPos = nil
+                        elseif nHistoryPos ~= nil then
+                            nHistoryPos = nHistoryPos + 1
+                        end                        
+                    end
+                    if nHistoryPos then
+                        sLine = _tHistory[nHistoryPos]
+                        nPos = string.len( sLine ) 
+                    else
+                        sLine = ""
+                        nPos = 0
+                    end
+                    redraw()
+                end
+            elseif param == keys.backspace then
+                -- Backspace
+                term.setCursorBlink(true)
+
+                if nPos > 0 then
+                    redraw(" ")
+                    sLine = string.sub( sLine, 1, nPos - 1 ) .. string.sub( sLine, nPos + 1 )
+                    nPos = nPos - 1                    
+                    redraw()
+                end
+            elseif param == keys.home then
+                -- Home
+                redraw(" ")
+                nPos = 0
+                redraw()        
+            elseif param == keys.delete then
+                -- Delete
+                if nPos < string.len(sLine) then
+                    redraw(" ")
+                    sLine = string.sub( sLine, 1, nPos ) .. string.sub( sLine, nPos + 2 )                
+                    redraw()
+                end
+            elseif param == keys["end"] then
+                -- End
+                redraw(" ")
+                nPos = string.len(sLine)
+                redraw()
+            end
+
+        elseif sEvent == "term_resize" then
+            -- Terminal resized
+            w = term.getSize()
+            redraw()
+        end
+    end
+
+    local cx, cy = term.getCursorPos()
+    term.setCursorBlink( false )
+    term.setCursorPos( w + 1, cy )
+    print()
+    
+    return sLine
+end
+
+

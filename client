@@ -1,0 +1,297 @@
+apiPath = "mmtp_files/"
+
+os.loadAPI(apiPath.."secure")
+os.loadAPI(apiPath.."server")
+os.loadAPI(apiPath.."gui")
+
+
+function display( str )
+	str = tostring(str)
+	w, h = term.getSize()
+	x = w / 2 - (#str/2)
+	y = h / 2
+	term.setCursorPos(x, y)
+	term.setBackgroundColor(colors.red)
+	term.setTextColor(colors.white)
+	print(str)
+	v = os.startTimer(2)
+	evnt, i = os.pullEvent()
+	if evnt then
+		term.clear()
+	end
+end
+
+function clicked( op )
+	return op
+end
+
+w, h = term.getSize()
+
+
+done = false
+
+gui.fill(colors.cyan)
+gui.newButton("log", " login  ", colors.white, colors.blue, 1, clicked, math.floor(w/2-(4)-1), math.floor(h/2-1), 9, 0)
+gui.newButton("reg", "register", colors.white, colors.blue, 1, clicked, math.floor(w/2-(4)-1), math.floor(h/2+1), 9, 0)
+
+while not done do
+	--term.clear()
+	--gui.fill(colors.cyan)
+	gui.draw()
+	ev, bt, x, y = os.pullEvent("mouse_click")
+	done, op1 = gui.check("log", bt, x, y, "log")
+	done, op2 = gui.check("reg", bt, x, y, "reg")
+
+	if op1 then
+		op = op1
+		break
+	elseif op2 then
+		op = op2
+		break
+	end
+end
+
+gui.flush()
+
+if op == "reg" then
+
+	gui.newTextBox("us", "username", colors.lightGray, colors.black, colors.white,_, 1, math.floor(w/2 - 5), math.floor(h/2 - 1), 10, true)
+	gui.newTextBox("pw", "password", colors.lightGray, colors.black, colors.white,"*", 1, math.floor(w/2 - 5), math.floor(h/2 + 1), 10, true)
+	gui.newTextBox("pwc", "confirm", colors.lightGray, colors.black, colors.white,"*", 1, math.floor(w/2 - 5), math.floor(h/2 + 3), 10,  true)
+
+	fill = false
+
+	while not fill do
+
+		gui.fill(colors.cyan)
+		gui.draw()
+		evnt, btn, x, y = os.pullEvent("mouse_click")
+
+		gui.check("pwc", btn, x, y)
+		gui.check("us", btn, x, y)
+		gui.check("pw", btn, x, y)
+
+		username = gui.get("us")
+		password = gui.get("pw")
+		passconf = gui.get("pwc")
+
+
+
+		if username and password == passconf then
+			res = server.create(username, password)
+			if res == 0 then
+				display("Incorrect credentials")
+			elseif res == 1 then
+				display("Created: "..username.."!")
+				gui.flush()
+				os.run({}, shell.getRunningProgram())
+			elseif res == 0 then
+				display("Server down.")
+			end
+		end
+
+		if username ~= nil and password ~= nil and not fill then
+			break
+		end
+	end
+
+elseif op == "log" then
+
+	gui.newTextBox("us", "username", colors.lightGray, colors.black, colors.white,_, 1, math.floor(w/2 - 5), math.floor(h/2 - 1), 10, true)
+	gui.newTextBox("pw", "password", colors.lightGray, colors.black, colors.white,"*", 1, math.floor(w/2 - 5), math.floor(h/2 + 1), 10, true)
+
+	fill = false
+
+	while not fill do
+
+		gui.fill(colors.cyan)
+		gui.draw()
+		evnt, btn, x, y = os.pullEvent("mouse_click")
+
+		gui.check("pwc", btn, x, y)
+		gui.check("us", btn, x, y)
+		gui.check("pw", btn, x, y)
+
+		username = gui.get("us")
+		password = gui.get("pw")
+
+
+
+		if username and password then
+			res = server.login(username, password)
+			if res == 0 then
+				display("Incorrect credentials")
+			elseif res == 1 then
+				--display("Wellcome, "..username.."!")
+				gui.flush()
+				fill = true
+			elseif res == 0 then
+				display("Server down.")
+			end
+		end
+
+		if username ~= nil and password ~= nil and fill == true then
+			break
+		end
+	end
+
+end
+
+function new()
+	gui.flush()
+	gui.fill(colors.cyan)
+
+	gui.newLabel("to_l", "Send to: ", colors.black, colors.cyan, 1, 2, 0, 0)
+	gui.newTextBox("to", "to", colors.lightGray, colors.black, colors.white,_, 1, 1, 3, 15, true)
+	gui.newLabel("head_l", "Title: ", colors.black, colors.cyan, 1, 5, 0, 0)
+	gui.newTextBox("head", "title", colors.lightGray, colors.black, colors.white,_, 1, 1, 6, 15, true)
+	gui.newLabel("body_l", "Body: ", colors.black, colors.cyan, 1, 8, 0, 0)
+	gui.newTextBox("body", "body", colors.lightGray, colors.black, colors.white,_, 1, 1, 9, 51, true, true)
+	gui.newButton("back", "<", colors.white, colors.green, 1, main, 1, 18, 2, 0)
+
+	while true do
+		gui.draw()
+		evnt, btn, x, y = os.pullEvent("mouse_click")
+		gui.check("to", btn, x, y)
+		gui.check("body", btn, x, y)
+		gui.check("head", btn, x, y)
+		gui.check("back", btn, x, y)
+
+		to = gui.get("to")
+		body = gui.get("body")
+		head = gui.get("head")
+
+		if to ~= nil and body ~= nil and head ~= nil then
+			resp = server.send(to, head, body)
+			if resp == 1 then
+				gui.flush()
+				break
+			elseif resp == 0 then
+				display("Message not sent")
+				gui.flush()
+				break
+			end
+		end
+	end
+	main()
+end
+
+function clicked( id )
+	gui.flush()
+	gui.fill(colors.cyan)
+	term.setCursorPos(1, 2)
+	term.setTextColor(colors.white)
+	print("Sender: "..mail["from_"..id])
+	print("Title: "..mail["title_"..id])
+	print()
+	print(mail["content_"..id])
+
+	gui.newButton("back", "<", colors.white, colors.green, 1, main, 1, 18, 2, 0)
+	gui.draw()
+
+	server.seen(mail["content_"..id], mail["id_"..id])
+
+	while true do 
+		gui.draw()
+		ev, bt, x, y = os.pullEvent("mouse_click")
+		gui.check("back", bt, x, y)
+	end
+end
+
+function quit()
+	gui.flush()
+	error("ok")
+	return
+end
+
+sc = 1
+
+function updateMail( dif )
+
+	gui.flush()
+	gui.newButton("new", "+", colors.white, colors.green, 1, new, 49, 1, 2, 0)
+	gui.newButton("quit", "x", colors.white, colors.red, 1, quit, 46, 1, 2, 0)
+	p = 3
+	for i = dif, 15+dif do
+		n = tostring(i+1)
+
+		if mail["seen_"..tostring(i+1)] == "0" then
+			checkColor = colors.green
+		else
+			checkColor = colors.lightGray
+		end
+
+		cont = "#"..n.." ".."["..mail["id_"..n].."] : "..mail["title_"..n]
+		cont = cont..string.rep(" ", 51-#cont)
+		gui.newButton("mail_"..n, cont, colors.black, checkColor, 1, clicked, 1, p, #cont, 1)
+		p = p + 1
+	end
+	return dif
+end
+dif = 0
+function main()
+	gui.flush()
+	gui.fill(colors.cyan)
+	term.setTextColor(colors.white)
+	tx = "Loading mails..."
+	term.setCursorPos(w/2-(#tx/2), h/2)
+	print(tx)
+
+	mail = server.get()
+	gui.fill(colors.lightGray)
+
+	term.setCursorPos(1,1)
+	term.setBackgroundColor(colors.cyan)
+	term.setTextColor(colors.white)
+	print("MMTP - Minecraft Mail Transfer Protocol      ")
+	paintutils.drawBox(1, 2, 51, 2, colors.white)
+	gui.newButton("new", "+", colors.white, colors.green, 1, new, 49, 1, 2, 0)
+	gui.newButton("quit", "x", colors.white, colors.red, 1, quit, 46, 1, 2, 0)
+	
+	updateMail( dif )
+
+	--gui.draw()
+	
+
+	while true do
+
+		gui.draw()
+		ev, btn, x, y = os.pullEvent()
+
+		if ev == "mouse_scroll" then
+			if dif < 1 and btn == -1 then
+				dif = updateMail(1)
+			else
+				dif = updateMail(dif+btn)
+			end
+		elseif ev == "mouse_click" then
+
+			gui.check("new", btn, x, y)
+			gui.check("quit", btn, x, y)
+
+			for v = 1, mail.msg do
+				n = tostring(v)
+				if y == 3 then
+					gui.check("mail_"..tostring(v), btn, x, y, n)
+				else
+					gui.check("mail_"..tostring(v-1), btn, x, y, n)
+				end
+			end
+		end
+	end
+end
+
+ok, det = pcall(main)
+
+if not ok then
+	val = string.sub(det, #det-1, #det)
+	if val == "ok" then
+		term.clear()
+		term.setCursorPos(1,1)
+		term.setBackgroundColor(colors.black)
+		term.setTextColor(colors.white)
+		term.clear()
+		print("Thank you for using MMTP. Please send feedback via CC Forums, and contribute via GitHub.")
+		return
+	end
+end
